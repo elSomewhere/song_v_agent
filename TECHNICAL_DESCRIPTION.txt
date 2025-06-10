@@ -1,0 +1,422 @@
+================================================================================
+AI STORYBOARD GENERATOR - COMPREHENSIVE TECHNICAL DESCRIPTION
+================================================================================
+
+Project Name: AI Storyboard Generator (song_v_agent_2)
+Last Updated: December 2024
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+The AI Storyboard Generator is an advanced multi-agent system that automatically
+generates professional cinematic storyboard frames from written scripts. It uses
+a sophisticated orchestration of GPT-4, GPT-4.1-mini, and GPT-4o models through
+a Director-Artist-Critic workflow to create visually consistent, high-quality
+storyboard images that maintain character consistency and adhere to specific
+artistic styles.
+
+Key Capabilities:
+- Automatic conversion of written shot descriptions to visual storyboards
+- Maintains visual consistency across multiple frames
+- Dynamic entity detection and reference image integration
+- Quality control through automated critique and retry mechanism
+- Context-aware generation with configurable history management
+- Parallel processing with intelligent rate limiting
+- Resume capability for interrupted sessions
+
+================================================================================
+SYSTEM ARCHITECTURE
+================================================================================
+
+1. TECHNOLOGY STACK
+------------------
+- Programming Language: Python 3.x
+- AI Framework: LangGraph (for agent orchestration)
+- AI Models:
+  * GPT-4: Text analysis, entity extraction, critique logic
+  * GPT-4.1-mini: Image generation
+  * GPT-4o: Vision-based image evaluation
+- Vector Database: LanceDB
+- Embeddings:
+  * Text: OpenAI embeddings or sentence transformers
+  * Images: CLIP embeddings
+- Image Processing: PIL/Pillow
+- Async Processing: Python asyncio
+- CLI Framework: Rich (for progress bars and console output)
+
+2. AGENT ARCHITECTURE
+---------------------
+The system employs three specialized AI agents orchestrated by LangGraph:
+
+a) DIRECTOR AGENT (agents/director.py)
+   - Orchestrates the entire workflow
+   - Reads shot descriptions from the database
+   - Dynamically detects entities mentioned in shots
+   - Manages workflow state and shot processing order
+   - Implements resume functionality
+
+b) ARTIST AGENT (agents/artist.py)
+   - Generates storyboard images using GPT-4.1-mini
+   - Constructs detailed prompts incorporating:
+     * Shot descriptions and camera specifications
+     * Reference images for detected entities
+     * Style guidelines
+     * Historical context (previous frames)
+   - Manages image generation API calls
+   - Saves generated images with metadata
+
+c) CRITIC AGENT (agents/critic.py)
+   - Evaluates generated images using GPT-4o vision
+   - Checks for:
+     * Correct aspect ratio (16:9)
+     * Style adherence
+     * Character accuracy
+     * Shot composition matching
+   - Provides specific feedback for improvements
+   - Determines retry/accept/reject decisions
+
+3. WORKFLOW STATE MANAGEMENT
+----------------------------
+The system uses a TypedDict-based state that flows through the agents:
+
+WorkflowState:
+- current_shot_id: Active shot being processed
+- shot_id: Database ID of current shot
+- shot_text: Shot description text
+- entities: Detected entities in the shot
+- attempt: Current retry attempt number
+- current_variation: Current variation being generated
+- status: Workflow status (start/pass/fail/retry/complete/skip/error)
+- output_base_path: Base directory for outputs
+- variations_per_shot: Number of variations to generate
+- image_path: Path to current generated image
+- image_paths: List of all generated image paths
+- critic_notes: Feedback from critic
+- error: Error message if any
+- context_window: Number of previous images to include
+- historical_context: Previous successful generations
+- base_context: Base documents from data folder
+- max_retries: Maximum retry attempts allowed
+
+================================================================================
+DATA MODEL & STORAGE
+================================================================================
+
+1. INPUT DATA STRUCTURE (/data/)
+--------------------------------
+data/
+├── script.md         # Shot-by-shot descriptions in markdown
+├── style.md          # Visual style guidelines and artistic direction
+├── entites.md        # Character/entity descriptions and relationships
+└── refs/            # Reference images organized by entity
+    ├── [EntityName]/
+    │   ├── image1.jpg
+    │   ├── image2.png
+    │   └── ...
+    └── ...
+
+2. VECTOR DATABASE SCHEMA (LanceDB)
+-----------------------------------
+Tables:
+a) shots
+   - id: Integer (shot number)
+   - text: String (shot description)
+   - embedding: Vector (text embedding)
+   - metadata: JSON (framing, camera angle, etc.)
+
+b) refs
+   - path: String (file path)
+   - tag: String (entity name)
+   - embedding: Vector (CLIP embedding)
+   - metadata: JSON (additional info)
+
+3. OUTPUT STRUCTURE (/output/)
+------------------------------
+output/
+└── run_YYYYMMDD_HHMMSS/     # Timestamped run folder
+    ├── Shot-001/
+    │   ├── var1.png          # Variation 1
+    │   ├── var2.png          # Variation 2
+    │   ├── var3.png          # Variation 3
+    │   ├── prompt_var1.json  # Generation prompt
+    │   ├── prompt_var2.json
+    │   ├── prompt_var3.json
+    │   ├── critic_var1_try0.json  # Critic feedback
+    │   ├── critic_var1_try1.json  # Retry feedback
+    │   └── ...
+    └── Shot-002/
+        └── ...
+
+================================================================================
+CONTEXT MANAGEMENT SYSTEM
+================================================================================
+
+1. BASE CONTEXT (Always Included)
+---------------------------------
+The system maintains a base context that is ALWAYS provided to all agents:
+- style.md: Artistic style guidelines
+- entites.md: Character/entity descriptions
+- script.md: Complete narrative script
+- Any additional .md files in /data/
+
+This ensures consistent creative vision across all generations.
+
+2. HISTORICAL CONTEXT OPTIONS
+-----------------------------
+Controlled via --context-window parameter:
+- 0: Fresh context per shot (no history)
+- N: Sliding window of last N images
+- -1: Full history (all previous images)
+
+Additional control via --context-variations:
+- -1: Include all variations from each shot (default)
+- N: Include only first N variations from each shot
+
+This allows for temporal coverage optimization. For example:
+--context-window 15 --context-variations 1 would span 15 different shots
+instead of just 5 shots with 3 variations each.
+
+3. CONTEXT FLOW
+---------------
+Base Documents → Combined with → Historical Images → Fed to → Agent Prompts
+                                                                    ↓
+                                                            Image Generation
+                                                                    ↓
+                                                            Quality Evaluation
+
+================================================================================
+KEY ALGORITHMS & PROCESSES
+================================================================================
+
+1. ENTITY DETECTION
+-------------------
+- Director agent analyzes entites.md to extract all entities and aliases
+- For each shot, GPT-4 identifies mentioned entities
+- System retrieves reference images from /data/refs/[entity]/
+- References are embedded in artist prompts for consistency
+
+2. PROMPT CONSTRUCTION
+----------------------
+Artist agent builds multi-modal prompts containing:
+- Shot description and technical specifications
+- Style guidelines (extracted from style.md)
+- Entity descriptions (from entites.md)
+- Reference images (base64 encoded)
+- Script context (surrounding shots)
+- Historical images (if context mode enabled)
+
+3. RETRY MECHANISM
+------------------
+- Each image can be retried up to --max-retries times
+- Critic provides specific feedback incorporated in retry
+- Exponential backoff for API failures
+- Retry prompt includes previous attempt and critic notes
+
+4. PARALLEL PROCESSING
+----------------------
+- Supports multiple workers (configurable)
+- Rate limiting to respect API quotas
+- Smart queuing for optimal throughput
+- Sequential processing in context mode
+
+================================================================================
+CONFIGURATION & PARAMETERS
+================================================================================
+
+1. COMMAND LINE ARGUMENTS
+-------------------------
+--shot-id N: Starting shot ID (default: 1)
+--max-shots N: Total shots to process (default: 60)
+--variations N: Variations per shot (default: 3)
+--context-window N: Previous images to include (default: 0)
+--context-variations N: Variations per shot in context (default: -1)
+--max-retries N: Maximum retry attempts (default: 1)
+
+2. ENVIRONMENT VARIABLES
+------------------------
+OPENAI_API_KEY: Required for API access
+
+3. HARDCODED CONFIGURATIONS (run.py)
+------------------------------------
+RATE_LIMIT: API calls per minute (default: 3)
+PARALLEL_WORKERS: Concurrent workers (default: 1)
+
+================================================================================
+API INTEGRATIONS
+================================================================================
+
+1. OPENAI API ENDPOINTS
+-----------------------
+- Text Completion: GPT-4 for analysis and critique
+- Image Generation: DALL-E via GPT-4.1-mini
+- Vision Analysis: GPT-4o for image evaluation
+
+2. RATE LIMITING
+----------------
+- Configurable calls per minute
+- Automatic throttling and backoff
+- Queue management for parallel requests
+
+================================================================================
+ERROR HANDLING & RECOVERY
+================================================================================
+
+1. RETRY STRATEGIES
+-------------------
+- API failures: Exponential backoff with retry
+- Generation failures: Up to max-retries attempts
+- Critique failures: Skip to next shot
+
+2. RESUME CAPABILITY
+--------------------
+- Automatically detects completed shots
+- Skips already-generated content
+- Preserves all previous outputs
+- Can resume from any shot ID
+
+3. ERROR LOGGING
+----------------
+- Console output via Rich library
+- JSON logs for critic feedback
+- Error states in workflow
+
+================================================================================
+PERFORMANCE OPTIMIZATIONS
+================================================================================
+
+1. CACHING
+----------
+- Vector embeddings cached in LanceDB
+- Reference images loaded once per session
+- Base context documents cached
+
+2. PARALLEL PROCESSING
+----------------------
+- Multiple shots processed concurrently
+- Rate-limited to avoid API throttling
+- Sequential mode for context preservation
+
+3. MEMORY MANAGEMENT
+--------------------
+- Images resized before encoding
+- Sliding window for context management
+- Efficient vector similarity search
+
+================================================================================
+EXTENSIBILITY POINTS
+================================================================================
+
+1. NEW AGENTS
+-------------
+- Add new nodes in agents/ directory
+- Wire into workflow in run.py
+- Extend WorkflowState as needed
+
+2. DIFFERENT MODELS
+-------------------
+- Swap embedding models in shared.py
+- Change image generation model
+- Use different critique models
+
+3. STYLE ADAPTATION
+-------------------
+- Replace style.md for different artistic styles
+- Modify prompt templates in artist.py
+- Adjust critic evaluation criteria
+
+4. OUTPUT FORMATS
+-----------------
+- Modify save_base64_image in artist.py
+- Add export functions for different formats
+- Integrate with external tools
+
+================================================================================
+USAGE WORKFLOW
+================================================================================
+
+1. SETUP
+--------
+a) Install dependencies: pip install -r requirements.txt
+b) Set OpenAI API key in .env file
+c) Prepare data in /data/ folder structure
+
+2. DATA PREPARATION
+-------------------
+a) Create script.md with shot descriptions
+b) Write style.md with artistic guidelines
+c) Document entities in entites.md
+d) Add reference images to /data/refs/
+
+3. EXECUTION
+------------
+a) Run: python run.py [options]
+b) Monitor progress in console
+c) Check output/ for generated storyboards
+
+4. ITERATION
+------------
+a) Review generated images
+b) Adjust prompts or references
+c) Re-run specific shots if needed
+
+================================================================================
+COMMON ISSUES & SOLUTIONS
+================================================================================
+
+1. "No shots found"
+   - Check script.md formatting
+   - Ensure shots marked as "### Shot N" or "### **Shot N**"
+
+2. "Reference images not loading"
+   - Verify /data/refs/ structure
+   - Check entity names match entites.md
+
+3. "Rate limit errors"
+   - Reduce RATE_LIMIT in run.py
+   - Decrease PARALLEL_WORKERS
+
+4. "Out of memory"
+   - Reduce image sizes in to_data_url()
+   - Use smaller embedding models
+   - Process fewer shots at once
+
+5. "Context window too large"
+   - Reduce --context-window value
+   - Limit --context-variations
+
+================================================================================
+FUTURE CONSIDERATIONS
+================================================================================
+
+1. SCALABILITY
+--------------
+- Database sharding for large projects
+- Distributed processing support
+- Cloud deployment options
+
+2. FEATURES
+-----------
+- Video generation from storyboards
+- Interactive editing interface
+- Style transfer capabilities
+- Multi-language support
+
+3. OPTIMIZATIONS
+----------------
+- GPU acceleration for embeddings
+- Batch API calls
+- Progressive rendering
+- Smart caching strategies
+
+================================================================================
+END OF TECHNICAL DESCRIPTION
+================================================================================
+
+This document serves as a comprehensive technical reference for any AI or
+developer working on the AI Storyboard Generator project. It covers all
+major components, workflows, and implementation details necessary to
+understand, maintain, and extend the system.
+
+For specific implementation details, refer to the source code and inline
+documentation within each module. 
