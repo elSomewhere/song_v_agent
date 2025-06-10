@@ -1,0 +1,546 @@
+# AI Storyboard Generator - RAG Architecture Redesign Plan
+# ==========================================================
+
+## Executive Summary
+
+This plan outlines a complete redesign of the current storyboard generation system, moving from a chronological sliding window approach to a semantic retrieval system with proper memory tiers. The new architecture emphasizes:
+
+1. **Semantic Memory Retrieval**: Replace sliding window with similarity-based retrieval using scene embeddings and entity overlap
+2. **Leaner Agent Architecture**: Consolidate from 3 agents to 3 specialized components (Planner, Renderer, Vision QA)
+3. **Structured Memory Model**: Implement Canonical, Episodic, and Working memory tiers
+4. **Token Efficiency**: Reduce prompt size by 50-70% through smart retrieval and structured data
+5. **Parametric RAG Model**: Maintain flexibility in retrieval parameters and strategies
+
+---
+
+## 1. Memory Model Architecture
+
+### 1.1 Three-Tier Memory System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         MEMORY TIERS                            │
+├─────────────────────────────────────────────────────────────────┤
+│ CANONICAL MEMORY (Static, Never in Prompts)                    │
+│ ├── style.md (artistic guidelines)                             │
+│ ├── entities.md (character/object descriptions)                │
+│ ├── script.md (full narrative)                                 │
+│ └── appearance_vectors/ (per-entity visual embeddings)         │
+├─────────────────────────────────────────────────────────────────┤
+│ EPISODIC MEMORY (Append-Only Scene Summaries)                  │
+│ └── scene_memories/                                            │
+│     └── {scene_id}.json                                        │
+│         ├── scene_id: int                                      │
+│         ├── shot_description: str                              │
+│         ├── entities_present: List[str]                        │
+│         ├── entity_states: Dict[str, EntityState]              │
+│         ├── camera_spec: CameraSpec                            │
+│         ├── visual_elements: List[str]                         │
+│         ├── embedding: List[float] (1536-dim)                  │
+│         ├── generated_images: List[ImageRef]                   │
+│         └── critic_tags: List[str]                             │
+├─────────────────────────────────────────────────────────────────┤
+│ WORKING MEMORY (Dynamic, Retrieved for Each Scene)             │
+│ └── Top-K relevant episodic memories based on:                 │
+│     ├── Semantic similarity (cosine distance)                  │
+│     ├── Entity overlap score                                   │
+│     └── Narrative distance penalty                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 Retrieval Strategy
+
+```python
+def retrieve_relevant_memories(current_scene, k=5):
+    """
+    Parametric retrieval function combining:
+    1. Semantic similarity (0.6 weight)
+    2. Entity overlap (0.3 weight)
+    3. Narrative distance penalty (0.1 weight)
+    """
+    scores = []
+    for memory in episodic_memories:
+        # Semantic similarity using embeddings
+        semantic_sim = cosine_similarity(
+            current_scene.embedding, 
+            memory.embedding
+        )
+        
+        # Entity overlap score
+        current_entities = set(current_scene.entities)
+        memory_entities = set(memory.entities_present)
+        entity_overlap = len(current_entities & memory_entities) / 
+                        len(current_entities | memory_entities)
+        
+        # Narrative distance penalty (prefer recent relevant scenes)
+        distance = abs(current_scene.id - memory.scene_id)
+        distance_penalty = 1 / (1 + distance * 0.01)
+        
+        # Combined score (parametric weights)
+        score = (semantic_sim * 0.6 + 
+                entity_overlap * 0.3 + 
+                distance_penalty * 0.1)
+        
+        scores.append((memory, score))
+    
+    return sorted(scores, key=lambda x: x[1], reverse=True)[:k]
+```
+
+---
+
+## 2. Agent Architecture Redesign
+
+### 2.1 Planner Agent (Replaces Director + Part of Artist)
+
+**Responsibilities:**
+- Parse next scene from script
+- Detect entities using canonical memory
+- Retrieve relevant episodic memories
+- Generate structured scene plan
+
+**Input Schema:**
+```json
+{
+  "scene_id": 42,
+  "raw_description": "Helena crouches behind debris...",
+  "canonical_context": {
+    "style_guide": "style.md excerpt",
+    "entity_descriptions": ["Helena", "Silicate Army"]
+  }
+}
+```
+
+**Output Schema:**
+```json
+{
+  "scene_id": 42,
+  "entities": [
+    {
+      "name": "Helena",
+      "canonical_id": "CHAR_HELENA",
+      "pose": "crouching behind debris",
+      "emotion": "determined, alert",
+      "visual_ref_ids": ["helena_ref_01", "helena_ref_03"]
+    }
+  ],
+  "camera": {
+    "type": "medium shot",
+    "angle": "eye level",
+    "movement": "slow push in"
+  },
+  "environment": {
+    "setting": "destroyed urban street",
+    "lighting": "harsh shadows, fire glow",
+    "mood": "tense, apocalyptic"
+  },
+  "visual_beats": [
+    "explosion illuminates background",
+    "debris particles in air"
+  ],
+  "retrieved_context": [
+    {"scene_id": 38, "relevance": 0.89},
+    {"scene_id": 15, "relevance": 0.76}
+  ]
+}
+```
+
+### 2.2 Renderer Agent (Simplified Artist)
+
+**Responsibilities:**
+- Expand canonical placeholders
+- Inject appearance vectors
+- Generate image using GPT-4o vision
+- Apply style consistency techniques
+
+**Prompt Template:**
+```
+[SYSTEM]
+You are generating storyboard frame {scene_id} in {style_name} style.
+
+[CANONICAL APPEARANCE]
+{expanded_entity_descriptions}
+
+[SCENE PLAN]
+{scene_plan_json}
+
+[VISUAL CONTEXT]
+{retrieved_episodic_images}
+
+[INSTRUCTION]
+Generate a single storyboard frame that:
+1. Matches the exact scene plan specifications
+2. Maintains character consistency using provided references
+3. Follows the established visual style
+4. Integrates naturally with the visual context provided
+```
+
+### 2.3 Vision QA Agent (Enhanced Critic)
+
+**Responsibilities:**
+- Analyze generated image against scene plan
+- Check style consistency
+- Verify entity accuracy
+- Provide structured feedback
+
+**Output Schema:**
+```json
+{
+  "status": "pass|fail",
+  "scores": {
+    "composition_match": 0.85,
+    "style_adherence": 0.92,
+    "entity_accuracy": 0.78,
+    "narrative_coherence": 0.88
+  },
+  "issues": [
+    {
+      "type": "entity_deviation",
+      "entity": "Helena",
+      "description": "Hair color inconsistent with reference"
+    }
+  ],
+  "retry_guidance": "Emphasize Helena's dark hair as shown in references"
+}
+```
+
+---
+
+## 3. Implementation Roadmap
+
+### Phase 1: Memory Infrastructure (Week 1)
+
+1. **Set up LanceDB tables:**
+   ```python
+   # Canonical memories table
+   canonical_table = db.create_table(
+       "canonical_memories",
+       data=[{
+           "id": str,
+           "type": str,  # "style", "entity", "script"
+           "content": str,
+           "embedding": list[float],
+           "metadata": dict
+       }]
+   )
+   
+   # Episodic memories table
+   episodic_table = db.create_table(
+       "episodic_memories",
+       data=[{
+           "scene_id": int,
+           "embedding": list[float],
+           "entities": list[str],
+           "summary": dict,
+           "images": list[str]
+       }]
+   )
+   ```
+
+2. **Implement memory service:**
+   ```python
+   class MemoryService:
+       def __init__(self, db_path: str):
+           self.db = lancedb.connect(db_path)
+           self.canonical = CanonicalMemory(self.db)
+           self.episodic = EpisodicMemory(self.db)
+           
+       def retrieve_for_scene(self, scene_desc: str, k: int = 5):
+           # Implement parametric retrieval logic
+           pass
+   ```
+
+### Phase 2: Agent Migration (Week 2)
+
+1. **Extract and merge Director + Artist logic:**
+   - Entity detection → Planner
+   - Prompt construction → Planner
+   - Image generation → Renderer
+
+2. **Implement structured message passing:**
+   ```python
+   from pydantic import BaseModel
+   
+   class ScenePlan(BaseModel):
+       scene_id: int
+       entities: List[EntitySpec]
+       camera: CameraSpec
+       environment: EnvironmentSpec
+       visual_beats: List[str]
+       retrieved_context: List[ContextRef]
+   ```
+
+3. **Update LangGraph workflow:**
+   ```python
+   workflow = StateGraph(AgentState)
+   
+   # Add nodes
+   workflow.add_node("planner", planner_agent)
+   workflow.add_node("renderer", renderer_agent) 
+   workflow.add_node("vision_qa", vision_qa_agent)
+   workflow.add_node("memory_write", memory_service.write)
+   
+   # Add edges
+   workflow.add_edge("planner", "renderer")
+   workflow.add_edge("renderer", "vision_qa")
+   workflow.add_conditional_edges(
+       "vision_qa",
+       should_retry,
+       {True: "renderer", False: "memory_write"}
+   )
+   ```
+
+### Phase 3: Semantic Retrieval System (Week 3)
+
+1. **Implement embedding generation:**
+   ```python
+   class EmbeddingService:
+       def __init__(self):
+           self.model = "text-embedding-3-small"
+           
+       def embed_scene(self, scene: SceneDescription):
+           # Combine description, entities, visual elements
+           text = f"{scene.description} {' '.join(scene.entities)}"
+           return openai.embeddings.create(
+               input=text,
+               model=self.model
+           ).data[0].embedding
+   ```
+
+2. **Build retrieval pipeline:**
+   ```python
+   class SemanticRetriever:
+       def __init__(self, memory_service: MemoryService):
+           self.memory = memory_service
+           
+       def retrieve(self, query: ScenePlan, params: RetrievalParams):
+           # Implement parametric retrieval
+           # Allow customization of:
+           # - k (number of memories)
+           # - weights (semantic vs entity vs distance)
+           # - entity_boost (specific character importance)
+           # - time_decay (how much to penalize old memories)
+           return self.memory.episodic.search(
+               query_embedding=query.embedding,
+               filter_entities=query.entities,
+               limit=params.k,
+               metric=params.metric
+           )
+   ```
+
+### Phase 4: Optimization & Testing (Week 4)
+
+1. **Token usage analysis:**
+   - Measure baseline token usage
+   - Compare with new architecture
+   - Optimize prompt templates
+
+2. **Quality metrics:**
+   - Style consistency score
+   - Character consistency score
+   - Narrative coherence score
+   - Generation success rate
+
+3. **Performance tuning:**
+   - Embedding cache optimization
+   - Batch retrieval for multiple scenes
+   - Parallel rendering pipeline
+
+---
+
+## 4. Migration Strategy
+
+### 4.1 Data Migration
+
+```python
+# Convert existing outputs to episodic memories
+def migrate_existing_runs():
+    for run_dir in output_dirs:
+        for shot_dir in run_dir.shots:
+            # Extract scene data
+            scene_data = parse_shot_metadata(shot_dir)
+            
+            # Generate embedding
+            embedding = embed_scene(scene_data)
+            
+            # Create episodic memory
+            memory = EpisodicMemory(
+                scene_id=scene_data.shot_id,
+                embedding=embedding,
+                entities=detect_entities(scene_data),
+                summary=create_summary(scene_data),
+                images=scene_data.generated_images
+            )
+            
+            # Store in new system
+            memory_service.episodic.add(memory)
+```
+
+### 4.2 Compatibility Layer
+
+```python
+class BackwardCompatibleCLI:
+    """Maintains CLI interface while using new architecture"""
+    
+    def __init__(self):
+        self.legacy_params = {
+            '--context-window': self.convert_to_retrieval_k,
+            '--variations': 'variations',
+            '--max-retries': 'max_retries'
+        }
+    
+    def convert_to_retrieval_k(self, window_size: int):
+        # Map sliding window size to retrieval K
+        if window_size == 0:
+            return 0  # No retrieval
+        elif window_size == -1:
+            return 50  # Large K for "all" context
+        else:
+            return min(window_size, 10)  # Reasonable K
+```
+
+---
+
+## 5. Configuration & Parametrization
+
+### 5.1 RAG Model Parameters
+
+```yaml
+# config/rag_params.yaml
+retrieval:
+  # Number of memories to retrieve
+  k: 5
+  
+  # Scoring weights
+  weights:
+    semantic_similarity: 0.6
+    entity_overlap: 0.3
+    narrative_distance: 0.1
+  
+  # Entity-specific boosts
+  entity_importance:
+    protagonist: 1.5
+    antagonist: 1.3
+    supporting: 1.0
+  
+  # Time decay factor
+  time_decay: 0.01
+  
+  # Minimum similarity threshold
+  min_similarity: 0.5
+
+memory:
+  # Maximum episodic memories to store
+  max_episodic: 1000
+  
+  # Embedding model
+  embedding_model: "text-embedding-3-small"
+  
+  # Update frequency
+  write_after_qa: true
+
+generation:
+  # Model settings
+  model: "gpt-4o"
+  temperature: 0.7
+  max_retries: 2
+  
+  # Image settings
+  size: "1792x1024"
+  quality: "hd"
+  style: "natural"
+```
+
+### 5.2 Runtime Parameters
+
+```python
+@dataclass
+class RAGParameters:
+    # Retrieval parameters
+    retrieval_k: int = 5
+    semantic_weight: float = 0.6
+    entity_weight: float = 0.3
+    distance_weight: float = 0.1
+    
+    # Memory parameters
+    include_canonical: bool = True
+    max_context_tokens: int = 4000
+    
+    # Generation parameters
+    variations_per_shot: int = 3
+    parallel_variations: bool = True
+    
+    # Quality parameters
+    min_quality_score: float = 0.7
+    retry_on_fail: bool = True
+```
+
+---
+
+## 6. Expected Improvements
+
+### 6.1 Token Efficiency
+- **Current**: ~8K tokens per shot after 20 shots
+- **New**: ~2K tokens per shot (75% reduction)
+- **Method**: Only relevant context via semantic retrieval
+
+### 6.2 Consistency
+- **Current**: Degrades with distance from reference
+- **New**: Maintains consistency via canonical memory
+- **Method**: Appearance vectors + semantic retrieval
+
+### 6.3 Performance
+- **Current**: Linear growth in processing time
+- **New**: Constant time per shot
+- **Method**: Fixed retrieval K + efficient embeddings
+
+### 6.4 Flexibility
+- **Current**: Fixed sliding window
+- **New**: Parametric retrieval with multiple strategies
+- **Method**: Configurable weights and thresholds
+
+---
+
+## 7. Testing Strategy
+
+### 7.1 Unit Tests
+```python
+def test_semantic_retrieval():
+    # Test retrieval accuracy
+    # Test entity overlap calculation
+    # Test distance penalties
+    
+def test_memory_tiers():
+    # Test canonical memory immutability
+    # Test episodic memory append
+    # Test working memory limits
+```
+
+### 7.2 Integration Tests
+```python
+def test_full_pipeline():
+    # Generate 50 shots
+    # Measure token usage
+    # Check consistency scores
+    # Verify retrieval relevance
+```
+
+### 7.3 A/B Testing
+- Run both old and new systems on same script
+- Compare:
+  - Token usage
+  - Generation quality
+  - Processing time
+  - Consistency metrics
+
+---
+
+## 8. Rollout Plan
+
+1. **Week 1**: Build memory infrastructure
+2. **Week 2**: Implement new agents
+3. **Week 3**: Deploy semantic retrieval
+4. **Week 4**: Testing and optimization
+5. **Week 5**: Migration and documentation
+6. **Week 6**: Production deployment
+
+This redesign will create a more efficient, consistent, and scalable storyboard generation system while maintaining the flexibility to adjust retrieval strategies based on specific project needs.
