@@ -1,0 +1,162 @@
+
+  # Towards a Leaner & Smarter RAG Agent Architecture  
+*(while never dropping global context or visual consistency)*  
+
+Below is a “drop-in” redesign of your current 4-agent LangGraph.  
+It keeps the same token-saving sliding window idea, but:
+
+* isolates **long-term memory** from **working memory**,  
+* removes needless round-trips between agents,  
+* formalises every message as structured JSON (no hallucinated fields),  
+* makes retrieval the *only* path to past context (so prompts stay tiny),  
+* and adds a few image-side tricks that reduce style/character drift.
+
+---
+
+## 1. Memory Model (the heart of consistency)
+
+```
+┌───────────────────────────┬────────────────────────────────┐
+│        Memory Tier        │             Stored             │
+├───────────────────────────┼────────────────────────────────┤
+│ Canonical Memory (static) │ style.md • entities.md         │
+│                           │ per-entity “appearance vector” │
+│                           │ LoRA / ControlNet weights¹     │
+│───────────────────────────┼────────────────────────────────┤
+│ Episodic Memory (append)  │ one JSON summary *per scene*:  │
+│                           │  • scene-id                    │
+│                           │  • camera & framing spec       │
+│                           │  • entity states (pose, mood)  │
+│                           │  • seed(s) used                │
+│                           │  • critic tag list             │
+│───────────────────────────┼────────────────────────────────┤
+│ Working Memory (rolling)  │ N most-relevant episodic       │
+│                           │ summaries fetched via vector   │
+│                           │ search (≠ simple “last N”)     │
+└───────────────────────────┴────────────────────────────────┘
+¹ Produced once by an offline “character onboarding” step.
+```
+
+*Only Working Memory is ever serialized into a prompt sent to GPT.*  
+Static + Episodic live in a DB (LanceDB is fine).  
+This alone removes 80–90 % of prompt tokens after ~20 scenes.
+
+---
+
+## 2. Agents (fewer, more specialised)
+
+### A. Planner  (text-only, GPT-4o/GPT-4)
+Role  
+• reads the next raw script scene  
+• queries Memory Service for *relevant* episodic chunks  
+• outputs a single JSON “Scene Plan”:
+
+```jsonc
+{
+  "scene_id": 42,
+  "entities": [
+    {"name": "Helena", "pose": "half crouch", "emotion": "defiant"}
+  ],
+  "camera": {"type": "dolly in", "fov": 35},
+  "beats": ["explosion back-left", "sparks illuminate face"],
+  "image_prompt": "... one clean text prompt ..."
+}
+```
+
+> Why one agent instead of Director + Artist-(prompt-phase)?  
+> Because the best way to *save tokens* is to generate the final prompt
+> only once, with the retriever in the loop.
+
+### B. Renderer  (DALLE-3/SDXL via GPT-4o-mini or direct)
+Role  
+• reads the prompt JSON  
+• inserts canonical “appearance vectors” or seeds for each entity  
+• can optionally produce two passes: layout → final (ControlNet)  
+• returns URL / base64 → stored.
+
+### C. Vision QA  (GPT-4o-vision)
+Role  
+• compares generated frame against Scene Plan  
+• either  `{"status":"pass"}`  or JSON with precise deltas  
+• if fail → Renderer retries **up to K**; else proceeds.
+
+### D. Memory Service  (stateless micro-library)
+Role  
+• wraps LanceDB queries  
+• writes new episodic summary after Vision QA pass  
+• supplies Planner with K nearest episodic memories (by embedding on
+  shot description + shared entities + location).
+
+That’s it—three LLM calls per scene in the success path.
+
+---
+
+## 3. Token-Saving Tricks
+
+1. **Structured messages only**  
+   Each agent expects/returns JSON with a strict schema; GPT tends to
+   compress output when structure is constrained.  
+2. **Semantic instead of chronological retrieval**  
+   Rather than sliding window “last N”, fetch by:
+   `similarity(scene_embedding, memory_embedding) + entity_overlap`
+3. **Canonical appearance tokens**  
+   Planner inserts `$CHAR_HELENA$` which the Renderer expands to the
+   stored seed / LoRA id + textual style macro.  
+   The placeholder itself is *one* token.  
+4. **Scene delta summaries**  
+   Episodic Memory stores *delta* from previous canonical pose, not the
+   whole description (smaller embeddings, less noise).
+
+
+
+---
+
+## 5. Graph Representation (LangGraph snippet)
+
+```python
+with Graph("storyboard") as g:
+    plan = g.node(Planner)
+    render = g.node(Renderer)
+    qa = g.node(VisionQA)
+
+    plan.connect(render)
+    render.connect(qa)
+    qa.connect_when(pass_=False, node=render)  # retry loop
+    qa.connect_when(pass_=True, node=MemoryService.write)
+```
+
+Only one loop, minimal edges → easier to reason about, cheaper to run.
+
+---
+
+## 6. Migration Steps from Current Codebase
+
+1. Extract Director’s entity-detection + Artist’s prompt-creation logic
+   → merge into new Planner.  
+2. Convert every prompt / critique / summary file to JSON; build pydantic
+   models so any malformed LLM output throws immediately.  
+3. Add the Memory Service wrapper around your existing LanceDB tables.  
+4. Introduce canonical placeholder scheme (`$CHAR_*`, `$STYLE_*`).  
+5. Incrementally port the old Reviewer & Critic rules into Vision QA
+   rubric JSON.
+
+---
+
+## 7. Expected Wins
+
+* 50 – 70 % fewer total GPT calls.  
+* Prompt tokens per scene ≈ *static base (style.md excerpt)* + *≤2 KB
+  episodic context* instead of exponential growth.  
+* Better image coherence thanks to deterministic seeds + LoRA.  
+* Simpler graph → easier to parallelise (renderers are embarrassingly
+  parallel once prompt JSON is ready).  
+
+---
+
+### Final Thought
+
+Elegance in RAG isn’t about adding agents—it’s about **separating memory
+from reasoning**.  Once you push everything that *can* live in a database
+out of the prompt, your agents become small, cheap, and predictable while
+still “remembering” hundreds of scenes with perfect fidelity.
+
