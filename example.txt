@@ -1,0 +1,114 @@
+## Technical description — how the storyboard-generator program works end-to-end
+
+The repository is a **small, file-oriented micro-service** that turns a markdown
+script and a folder of reference images into a folder tree full of GPT-4o-
+generated storyboard frames.  It is split into three layers:
+
+| Layer                            | What it does                                                                                                                                                   | Key files                                                                        |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Data ingestion**               | Convert the user’s text & images into two vector-DB tables (`shots`, `refs`).                                                                                  | `ingest/ingest_text.py`, `ingest/ingest_refs.py`                                 |
+| **Reasoning agents (LangGraph)** | Director → Artist → Critic graph; each node pulls just-in-time context from the DB, calls GPT-4o, and updates shared state.                                    | `agents/director.py`, `agents/artist.py`, `agents/critic.py`, `agents/shared.py` |
+| **Execution harness**            | Builds the graph, adds automatic retries & rate-limit gating, spawns N concurrent “shot workers”, shows a live progress bar, and resumes safely after crashes. | `run.py`, `retry_wrap.py`                                                        |
+
+---
+
+### 1  Data ingestion (one-off)
+
+```
+python ingest/ingest_text.py        # builds shots table
+python ingest/ingest_refs.py        # builds refs table
+```
+
+| Table     | Schema                                                                 | How it’s used later                                                                          |
+| --------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **shots** | `id` · `vector` (text-embedding-3-small) · `payload = {shot_id, text}` | Director walks IDs in order; Artist/Critic retrieve top-k “similar shots” for extra context. |
+| **refs**  | `id` = file path · `vector` (CLIP/ViT) · `payload = {tag, name, path}` | `get_refs_for(tag, k)` pulls reference images for “Helena”, “Silicate army”, etc.            |
+
+Both tables live in a local **LanceDB** folder (`vecstore/`).
+
+---
+
+### 2  Shared helpers (`agents/shared.py`)
+
+* Loads the style-primer markdown once.
+* Provides `to_data_url()` (base-64 inline images for GPT-4o).
+* Caches `get_refs_for(tag, k)` so repeated requests are O(1).
+* Exposes table handles `SHOTS_TBL`, `REFS_TBL` to every agent.
+
+---
+
+### 3  Agents (LangGraph nodes)
+
+| Node         | Responsibilities                                                                                                                                                                                                                                                                              | External calls                                                                                                                                                                                                                     |                                 |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Director** | ➊ Read next `shot_id` from state (or start at 1).<br>➋ Fetch shot text from DB.<br>➌ Detect entities in the shot via a simple regex.<br>➍ Initialise `"attempt":0` and hand off.                                                                                                              | –                                                                                                                                                                                                                                  |                                 |
+| **Artist**   | ➊ Collect global style images + entity-specific refs.<br>➋ Build a multimodal prompt (`messages` list with text + images).<br>➌ Call **`openai.images.generate`** (`gpt-4o-image-alpha`).<br>➍ Save `tryN.png` and prompt JSON to `output/Shot-XXX/`.<br>➎ Pass the image path back in state. | OpenAI **image** endpoint                                                                                                                                                                                                          |                                 |
+| **Critic**   | ➊ Show GPT-4o-mini (vision) the style, shot, refs, & candidate PNG.<br>➋ Demand JSON \`{"status":"PASS                                                                                                                                                                                        | RETRY", "notes":"…"}`.<br>➌ On `"PASS"`→ reset attempt, set`status:"pass"`.<br>➍ On `"RETRY"`&`attempt\<MAX\_TRIES`→ bump attempt, set`status:"retry"`.<br>➎ On too many retries → `status:"fail"\`. Save critic JSON next to PNG. | OpenAI **chat-vision** endpoint |
+
+Both Artist and Critic embed **references as images** so GPT-4o can check
+colour, armour shape, camera angle, etc. — no cosine similarity is used.
+
+---
+
+### 4  Reliability wrappers
+
+* **`retry_wrap.py`** — a generic decorator that retries any sync/async
+  function with exponential back-off.
+* `build_graph()` in **`run.py`** calls
+  `g.apply(retry_wrap(max_attempts=3, backoff=3))`
+  which means every Director/Artist/Critic invocation will be re-attempted on
+  *any* Python exception (network hiccups, 5xx, JSON error, etc.).
+
+---
+
+### 5  Runner (`run.py`)
+
+1. **Build graph** and compile it (`GRAPH = build_graph()`).
+2. **Rate-limit gate**: global token-bucket (`CALLS_PER_MIN`) ensures no more
+   than X OpenAI calls per minute regardless of parallelism.
+3. **Concurrency**: `asyncio.Semaphore(PAR)` lets e.g. 4 shots render in
+   parallel.
+4. **Progress bar**: `rich.Progress` shows frames complete vs. total.
+5. **Idempotence / resume**: if `output/Shot-XYZ/try0.png` already exists the
+   Director treats that shot as done, so re-running `python run.py` continues
+   where the last run stopped.
+
+---
+
+### 6  Output layout
+
+```
+output/
+└─ Shot-007/
+     ├─ try0.png              # first attempt by Artist
+     ├─ critic_try0.json      # Critic verdict
+     ├─ try1.png              # regenerated (if needed)
+     ├─ critic_try1.json
+     └─ prompt.json           # full messages array (provenance)
+```
+
+Frames are **never kept in RAM**; they’re streamed straight to disk so the
+program can run for days with constant memory use.
+
+---
+
+### 7  Tuning & extension points
+
+* **Add new agents** (e.g. a “Palette-Auditor”) by `g.add_node()` and wiring
+  new edges.
+* Swap CLIP embeddings for OpenAI `image-embedding-002` if you don’t want the
+  PyTorch download.
+* Replace the regex entity extractor with an LLM function call for better
+  accuracy.
+* Deploy under **systemd** or **Docker restart-always** for auto-relaunch after
+  a host reboot.
+
+---
+
+#### In one sentence
+
+> The program ingests your script & reference images into a vector store, then
+> drives a Director→Artist→Critic agent loop (protected by automatic retries
+> and rate-limit throttling) that progressively fills an `output/` folder with
+> GPT-4o-generated 16 : 9 storyboard frames—fully unattended until every shot
+> is marked PASS or exhausts its retry budget.
