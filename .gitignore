@@ -49,3 +49,5 @@ logs/
 *.tmp
 *.temp
 .cache/ 
+
+env.example
