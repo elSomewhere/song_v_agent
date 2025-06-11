@@ -1,23 +1,32 @@
 # Core dependencies
 openai>=1.0.0
-lancedb>=0.5.0
-langgraph>=0.1.0
-langchain>=0.1.0  # LangGraph dependency
+langgraph>=0.0.20
+langchain>=0.0.300
+python-dotenv>=1.0.0
 
-# Vector embeddings
-transformers>=4.30.0  # For CLIP
-torch>=2.0.0
-torchvision>=0.15.0
-sentence-transformers>=2.2.0  # Alternative to CLIP
-Pillow>=10.0.0  # Image processing
+# Vector database
+lancedb>=0.3.0
+pyarrow>=14.0.0
 
-# CLI and utilities
-rich>=13.0.0  # Progress bars
-asyncio-throttle>=1.0.2  # Rate limiting
-python-dotenv>=1.0.0  # Environment variables
+# Data validation
+pydantic>=2.0.0
 
-# Additional utilities
+# Async support
+aiohttp>=3.9.0
+asyncio
+
+# Rich console output
+rich>=13.0.0
+
+# JSON logging
+python-json-logger>=2.0.0
+
+# Image processing (optional, for future enhancements)
+pillow>=10.0.0
+
+# Utilities
 numpy>=1.24.0
-aiofiles>=23.0.0  # Async file operations
-pydantic>=2.0.0  # Data validation
-httpx>=0.24.0  # Async HTTP client 
+pandas>=2.0.0
+
+# For embeddings and vector operations
+scipy>=1.10.0 

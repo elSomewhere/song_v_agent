@@ -1,6 +1,5 @@
 ## **ACT 1: OMINOUS ARRIVAL**
 
-### **Story Beat 1 (Bullet Point #1)**
 1. **Shot 1**  
    - **Action/Story Detail**: The Silicate battleships hover in silent formation above a serene, lush planet.  
    - **Framing/Camera**: Extremely wide shot (EWS) from space, with the planet below filling the lower half of the frame. The dark silhouettes of the battleships dominate the top half.  
@@ -15,7 +14,6 @@
 
 ---
 
-### **Story Beat 2 (Bullet Point #2)**
 3. **Shot 3**  
    - **Action/Story Detail**: Inside the battleship, Helena is in a cramped attack pod bay. She stands near her sealed pod, checking her futuristic white skinsuit’s armor segments.  
    - **Framing/Camera**: Medium shot. Helena is centered, full body in frame, turning slightly to check her segmented forearm armor. The sleek, minimal plating is visible.  
@@ -30,7 +28,6 @@
 
 ---
 
-### **Story Beat 3 (Bullet Point #3)**
 5. **Shot 5**  
    - **Action/Story Detail**: Helena’s pod rapidly ejects from the battleship, the exterior plating glowing as it enters the planet’s atmosphere.  
    - **Framing/Camera**: Wide shot from space, showing the battleship at top-left. A single pod streaks downward, leaving a luminous trail.  
@@ -47,7 +44,6 @@
 
 ## **ACT 2: NIGHT OF FIRE**
 
-### **Story Beat 4 (Bullet Point #4)**
 7. **Shot 7**  
    - **Action/Story Detail**: Joy and Mr. Tanaka on a grassy hilltop, the sky spangled with stars. They’ve been peacefully stargazing.  
    - **Framing/Camera**: Wide shot from slightly behind them, capturing their silhouettes against the night sky. Joy is in her bright red countryside dress; Tanaka in simple trousers and a sweater.  
@@ -62,7 +58,6 @@
 
 ---
 
-### **Story Beat 5 (Bullet Point #5)**
 9. **Shot 9**  
    - **Action/Story Detail**: Joy’s perspective of the “shooting star” (the lead pod) suddenly intensifying in brightness as it grows larger, shifting from awe to concern.  
    - **Framing/Camera**: POV shot from Joy’s eyes, with the night sky dominating the top. One particularly bright streak is visible.  
@@ -77,7 +72,6 @@
 
 ---
 
-### **Story Beat 6 (Bullet Point #6)**
 11. **Shot 11**  
     - **Action/Story Detail**: Multiple pods crash into distant hills, erupting in fiery explosions. Joy and Tanaka react in shock.  
     - **Framing/Camera**: Wide shot from behind Joy and Tanaka at the hilltop, capturing large plumes of fire and smoke on the horizon.  
@@ -94,7 +88,6 @@
 
 ## **ACT 3: DAWN OF WAR**
 
-### **Story Beat 7 (Bullet Point #7)**
 13. **Shot 13**  
     - **Action/Story Detail**: The smoldering wreckage of a Silicate pod rests in a large crater at dawn. Troops, tanks, and mechs emerge systematically from the opened hull. Helena is among them.  
     - **Framing/Camera**: Wide shot from the crater’s edge, showing the hollow interior of the pod. White-armored infantry, blocky mechs, and sleek tanks are in neat formation. Helena stands at the forefront.  
@@ -109,7 +102,6 @@
 
 ---
 
-### **Story Beat 8 (Bullet Point #8)**
 15. **Shot 15**  
     - **Action/Story Detail**: Helena walks to the hill’s edge, the disciplined Silicate army lined up behind her, ready to advance.  
     - **Framing/Camera**: Low-angle wide shot from ground level behind Helena, her silhouette in the foreground, the army spread out behind.  
@@ -124,7 +116,6 @@
 
 ---
 
-### **Story Beat 9 (Bullet Point #9)**
 17. **Shot 17**  
     - **Action/Story Detail**: Silicate artillery on the hillside unleashes its first barrage, shells and energy beams raining down on a distant rural city.  
     - **Framing/Camera**: Wide shot from behind the artillery lines, capturing a volley of red-orange blasts arcing into the sky, descending onto the city in the distance.  
@@ -141,7 +132,6 @@
 
 ## **ACT 4: SIEGE AND CHAOS**
 
-### **Story Beat 10 (Bullet Point #10)**
 19. **Shot 19**  
     - **Action/Story Detail**: Inside the burning rural city, civilians run in panic, crumbling buildings behind them.  
     - **Framing/Camera**: Wide shot, street-level, capturing a chaotic scene with rubble, broken carts, and flames licking at wooden structures.  
@@ -156,7 +146,6 @@
 
 ---
 
-### **Story Beat 11 (Bullet Point #11)**
 21. **Shot 21**  
     - **Action/Story Detail**: Silicate infantry march systematically down a main road, rifles at the ready. Their pristine white metallic suits contrast the burning rubble.  
     - **Framing/Camera**: Low-angle medium-wide shot showing their unison stride. The camera is near street-level, making them appear imposing.  
@@ -171,7 +160,6 @@
 
 ---
 
-### **Story Beat 12 (Bullet Point #12)**
 23. **Shot 23**  
     - **Action/Story Detail**: Helena walks calmly through the destroyed main road, stepping over rubble. Her weapon is held at ease.  
     - **Framing/Camera**: Full-body shot from the side, showcasing Helena’s white skinsuit and segmented armor. The city’s wreckage extends behind her.  
@@ -188,7 +176,6 @@
 
 ## **ACT 5: AWAKENING OF MOTHER**
 
-### **Story Beat 13 (Bullet Point #13)**
 25. **Shot 25**  
     - **Action/Story Detail**: From Helena’s vantage at the outskirts of the city, we see “Mother,” an immense fortress, emerging from dust in the central square.  
     - **Framing/Camera**: Wide shot with Helena in the lower corner (foreground), the colossal Mother structure rearing up in the background.  
@@ -203,7 +190,6 @@
 
 ---
 
-### **Story Beat 14 (Bullet Point #14)**
 27. **Shot 27**  
     - **Action/Story Detail**: Mother’s cannons begin to float into place around its structure, each barrel glowing with red-orange energy.  
     - **Framing/Camera**: Medium shot on a single cannon segment, mechanical tendrils adjusting its position.  
@@ -218,7 +204,6 @@
 
 ---
 
-### **Story Beat 15 (Bullet Point #15)**
 29. **Shot 29**  
     - **Action/Story Detail**: Helena stands on the main road outside the central city square, watching Mother in the distance. Her posture is tense but resolute.  
     - **Framing/Camera**: Medium shot from behind Helena, focusing on her silhouette facing Mother. The fortress looms in the background.  
@@ -235,7 +220,6 @@
 
 ## **ACT 6: MOTHER’S COUNTERATTACK**
 
-### **Story Beat 16 (Bullet Point #16)**
 31. **Shot 31**  
     - **Action/Story Detail**: Mother’s cannons discharge in unison, massive beams obliterating Silicate troops and vehicles.  
     - **Framing/Camera**: Wide shot of the battlefield, with multiple red-orange energy beams arcing across the cityscape. Silicate lines erupt in explosions.  
@@ -250,7 +234,6 @@
 
 ---
 
-### **Story Beat 17 (Bullet Point #17)**
 33. **Shot 33**  
     - **Action/Story Detail**: Silicate forces, previously orderly, now in full retreat or utter confusion. Soldiers run, mechs collapse in the background.  
     - **Framing/Camera**: Medium-wide shot from a corner of a shattered building, framing retreating soldiers in the mid-ground, wrecked mechs in the background.  
@@ -265,7 +248,6 @@
 
 ---
 
-### **Story Beat 18 (Bullet Point #18)**
 35. **Shot 35**  
     - **Action/Story Detail**: Helena is caught in a massive blast wave, thrown off her feet. Her armor scorched.  
     - **Framing/Camera**: Dramatic wide shot capturing the moment the energy beam hits near Helena, sending her tumbling through the air. Debris is everywhere.  
@@ -282,7 +264,6 @@
 
 ## **ACT 7: MEMORY OF INNOCENCE (DREAM SEQUENCE)**
 
-### **Story Beat 19 (Bullet Point #19)**
 37. **Shot 37**  
     - **Action/Story Detail**: Helena “awakens” in a dreamlike, pastoral scene, her childhood homeworld glowing warmly.  
     - **Framing/Camera**: Wide establishing shot of peaceful rolling fields under a golden sun. Child Helena (7–8 years old) stands in the middle.  
@@ -297,7 +278,6 @@
 
 ---
 
-### **Story Beat 20 (Bullet Point #20)**
 39. **Shot 39**  
     - **Action/Story Detail**: Young Helena is given a bright red kite by her father (seen only partially, warm smile, gentle gesture).  
     - **Framing/Camera**: Medium shot of Young Helena facing camera, father’s hands extending the kite from off-frame.  
@@ -312,7 +292,6 @@
 
 ---
 
-### **Story Beat 21 (Bullet Point #21)**
 41. **Shot 41**  
     - **Action/Story Detail**: Suddenly the sky darkens, storm clouds swirl in. The kite bursts into flames mid-air.  
     - **Framing/Camera**: Medium-wide shot, capturing Young Helena from the front, eyes wide in shock, the fiery kite overhead.  
@@ -329,7 +308,6 @@
 
 ## **ACT 8: DETERMINED RESOLVE**
 
-### **Story Beat 22 (Bullet Point #22)**
 43. **Shot 43**  
     - **Action/Story Detail**: Helena jolts awake (back in the war-torn city), covered in ash, injuries visible on her armor. She gasps for breath.  
     - **Framing/Camera**: Tight close-up on Helena’s face, lying on the ground, eyes snapping open. Ash and blood streak her pale complexion.  
@@ -344,7 +322,6 @@
 
 ---
 
-### **Story Beat 23 (Bullet Point #23)**
 45. **Shot 45**  
     - **Action/Story Detail**: Helena manages to stand, wincing but resolved. She checks her rifle for functionality.  
     - **Framing/Camera**: Medium shot from the side, half-profile. Smoke drifts behind her, revealing partial silhouettes of destroyed mechs.  
@@ -359,7 +336,6 @@
 
 ---
 
-### **Story Beat 24 (Bullet Point #24)**
 47. **Shot 47**  
     - **Action/Story Detail**: Helena locks her gaze on the towering Mother fortress in the distance, battered but unbroken.  
     - **Framing/Camera**: Medium-wide shot behind Helena, rubble-strewn street leading towards Mother.  
@@ -376,7 +352,6 @@
 
 ## **ACT 9: SACRIFICE AND DEFIANCE**
 
-### **Story Beat 25 (Bullet Point #25)**
 49. **Shot 49**  
     - **Action/Story Detail**: Helena charges through the ravaged streets toward Mother, avoiding collapsing buildings and stray cannon fire.  
     - **Framing/Camera**: Wide shot from an elevated position, Helena in mid-run in the foreground. Blasts strike behind her.  
@@ -391,7 +366,6 @@
 
 ---
 
-### **Story Beat 26 (Bullet Point #26)**
 51. **Shot 51**  
     - **Action/Story Detail**: Helena narrowly avoids a beam. The blast destroys a building to her left, bricks and beams exploding outward.  
     - **Framing/Camera**: Wide shot from behind Helena, capturing the building’s collapse in the mid-ground, showing the scale of destruction.  
@@ -406,7 +380,6 @@
 
 ---
 
-### **Story Beat 27 (Bullet Point #27)**
 53. **Shot 53**  
     - **Action/Story Detail**: Helena leaps across a gap in the rubble, propelled by adrenaline, closing in on Mother’s courtyard.  
     - **Framing/Camera**: Dynamic wide shot capturing Helena mid-air, the courtyard and Mother’s towering form behind.  
@@ -421,7 +394,6 @@
 
 ---
 
-### **Story Beat 28 (Bullet Point #28)**
 55. **Shot 55**  
     - **Action/Story Detail**: Sudden silence. We see the aftermath: Helena’s body lies motionless in drifting smoke, indicating the final toll of her courage.  
     - **Framing/Camera**: Wide shot of the courtyard. Her prone form is small against the immense bulk of Mother.  
@@ -438,7 +410,6 @@
 
 ## **ACT 10: CONTINUATION AND REFLECTION**
 
-### **Story Beat 29 (Bullet Point #29)**
 57. **Shot 57**  
     - **Action/Story Detail**: Joy, having survived, stands on a distant hillside. She looks upon the destroyed city and the looming, silent fortress.  
     - **Framing/Camera**: Wide shot from behind Joy, capturing her small figure in her red dress against a stark, smoking panorama.  
@@ -463,20 +434,4 @@
     - **Action/Story Detail**: Joy stands, helmet cradled against her chest, gazing up at the shimmering stars.  
     - **Framing/Camera**: Slight low angle, capturing both Joy and the twilight sky. The fortress remains in the far background, overshadowed by the quiet sky.  
     - **Environment/Lighting**: The final rays of daylight fade; stars glimmer faintly.  
-    - **Mood**: Somber hope, end of one cycle and start of another. The final note of resilience.
-
----
-
-## **End Notes**
-
-- **Stylistic Consistency**:  
-  - Helena always appears in her **white skinsuit with segmented plating** as per design sheets; hair transitions from neat to messy due to combat.  
-  - Joy consistently wears her **bright red countryside dress**, emphasizing her innocence and standing out amid destruction.  
-  - Mr. Tanaka’s **simple rural attire** underscores his gentle nature.  
-  - Mother’s fortress design remains a terrifying mix of **organic and mechanical**, with pulsing red-orange cores.  
-  - The Silicate Army’s **white metallic suits** and **blocky mechs** maintain a cold, efficient aesthetic.  
-
-- **Overall Cinematic Progression**:  
-  - Begins with wide, cosmic shots conveying scale and foreboding.  
-  - Moves to more intimate close-ups showing personal stakes (Joy, Helena’s past).  
-  - Culminates in intense warfare and ends in reflective, subdued stillness.  
+    - **Mood**: Somber hope, end of one cycle and start of another. The final note of resilience. 
